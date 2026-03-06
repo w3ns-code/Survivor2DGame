@@ -11,16 +11,21 @@ public class ProjectileWeaponBehaviour : MonoBehaviour
     protected float currentCooldownDuration;
     protected int currentPierce;
 
-  void Awake()
-  {
-    currentDamage = weaponData.Damage;
-    currentSpeed = weaponData.Speed;
-    currentCooldownDuration = weaponData.CooldownDuration;
-    currentPierce = weaponData.Pierce;
-  }
+    void Awake()
+    {
+        currentDamage = weaponData.Damage;
+        currentSpeed = weaponData.Speed;
+        currentCooldownDuration = weaponData.CooldownDuration;
+        currentPierce = weaponData.Pierce;
+    }
+
+    public float GetCurrentDamage()
+    {
+        return currentDamage *= FindFirstObjectByType<PlayerStats>().currentMight;
+    }
 
 
-  protected virtual void Start()
+    protected virtual void Start()
     {
         Destroy(gameObject, destroyAfterSeconds);
     }
@@ -72,21 +77,14 @@ public class ProjectileWeaponBehaviour : MonoBehaviour
         if (col.CompareTag("Enemy"))
         {
             EnemyStats enemy = col.GetComponent<EnemyStats>();
-            enemy.TakeDamage(currentDamage);
+            enemy.TakeDamage(GetCurrentDamage());
             reducePierce();
         }
         else if (col.CompareTag("Props"))
         {
             if(col.gameObject.TryGetComponent(out BreakableProps breakable))
             {
-                breakable.TakeDamage(currentDamage);
-                reducePierce();
-            }
-        }else if (col.CompareTag("Props"))
-        {
-            if(col.gameObject.TryGetComponent(out BreakableProps breakable))
-            {
-                breakable.TakeDamage(currentDamage);
+                breakable.TakeDamage(GetCurrentDamage());
                 reducePierce();
             }
         }

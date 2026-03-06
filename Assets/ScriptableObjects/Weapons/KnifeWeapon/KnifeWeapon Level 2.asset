@@ -10,10 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a3954afb673e594b82df8fdd8d8f614, type: 3}
-  m_Name: KnifeWeapon
+  m_Name: KnifeWeapon Level 2
   m_EditorClassIdentifier: Assembly-CSharp::WeaponScriptableObjects
   prefab: {fileID: 7037003464697188800, guid: 0cf4eff274bd88b46bf398b84fac4706, type: 3}
   damage: 5
-  speed: 10
+  speed: 15
   cooldownDuration: 2
   pierce: 1
+  level: 2
+  nextLevelPrefab: {fileID: 0}
+  icon: {fileID: 4899227789284837310, guid: 6cd9884a7b1d08243b53e39142dea555, type: 3}

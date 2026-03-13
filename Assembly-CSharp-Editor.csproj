@@ -10,7 +10,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{8F149220-C78E-7270-C4F5-29CE63D85E30}</ProjectGuid>
+    <ProjectGuid>{543EBCE5-AA55-31E5-7CA7-40C7E534F650}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp-Editor</AssemblyName>
@@ -63,7 +63,6 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\UI\Editor\UILevelSelectorEditor.cs" />
     <Compile Include="Assets\Scripts\Editor\WeaponDataEditor.cs" />
-    <Compile Include="Assets\VirtualJoystick\Editor\VirtualJoystickEditor.cs" />
     <Compile Include="Assets\Scripts\UI\Editor\UIInventoryIconsDisplayEditor.cs" />
     <Compile Include="Assets\Scripts\UI\Editor\UICharacterSelectorEditor.cs" />
   </ItemGroup>
@@ -1343,7 +1342,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Assembly-CSharp.csproj">
-      <Project>{AF2C693E-6B54-04E9-E86F-ACE7CA33EAF6}</Project>
+      <Project>{DBE3C865-ED55-20B1-B862-32A041E0B26C}</Project>
       <Name>Assembly-CSharp</Name>
     </ProjectReference>
   </ItemGroup>

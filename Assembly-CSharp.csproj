@@ -10,7 +10,7 @@
     <ProductVersion>10.0.20506</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <RootNamespace></RootNamespace>
-    <ProjectGuid>{AF2C693E-6B54-04E9-E86F-ACE7CA33EAF6}</ProjectGuid>
+    <ProjectGuid>{DBE3C865-ED55-20B1-B862-32A041E0B26C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -67,7 +67,6 @@
     <Compile Include="Assets\Scripts\Spawning\EventManager.cs" />
     <Compile Include="Assets\Scripts\Map\ChunkTrigger.cs" />
     <Compile Include="Assets\Scripts\Spawning\RingEventData.cs" />
-    <Compile Include="Assets\VirtualJoystick\Scripts\VirtualJoystick.cs" />
     <Compile Include="Assets\Scripts\Enemy\EnemyMovement.cs" />
     <Compile Include="Assets\Scripts\Weapons\BloodyTearWeapon.cs" />
     <Compile Include="Assets\Scripts\Pick-ups\TreasureChestDropProfile.cs" />

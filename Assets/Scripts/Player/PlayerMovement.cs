@@ -46,6 +46,7 @@ public class PlayerMovement : Sortable
             return;
         }
 
+        moveDir = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
 
         if (moveDir.x != 0)
         {

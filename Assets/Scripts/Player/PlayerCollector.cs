@@ -1,32 +1,52 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
+[RequireComponent(typeof(Collider2D))]
 public class PlayerCollector : MonoBehaviour
 {
     PlayerStats player;
-    CircleCollider2D playerCollector;
-    public float pullSpeed;
+    CircleCollider2D detector;
+    public float pullSpeed = 10;
+
+    public delegate void OnCoinCollected();
+    public OnCoinCollected onCoinCollected;
+
+    float coins;
 
     void Start()
     {
-        player = FindFirstObjectByType<PlayerStats>();
-        playerCollector = GetComponent<CircleCollider2D>();
+        player = GetComponentInParent<PlayerStats>();
+        coins = 0;
     }
 
-    void Update()
+    public void SetRadius(float r)
     {
-        playerCollector.radius = player.currentMagnet;
+        if (!detector) detector = GetComponent<CircleCollider2D>();
+        detector.radius = r;
     }
 
-  void OnTriggerEnter2D(Collider2D col)
+    public float GetCoins() { return coins; }
+    //Updates coins Display and information
+    public float AddCoins(float amount)
     {
-        if(col.gameObject.TryGetComponent(out ICollectable collectable))
+        coins += amount;
+        onCoinCollected();
+        return coins;
+    }
+
+    // Saves the collected coins to the save file.
+    public void SaveCoinsToStash()
+    {
+        SaveManager.LastLoadedGameData.coins += coins;
+        SaveManager.Save();
+    }
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.TryGetComponent(out Pickup p))
         {
-            Rigidbody2D rb = col.gameObject.GetComponent<Rigidbody2D>();
-            Vector2 forceDirection = (transform.position - col.transform.position).normalized;
-            rb.AddForce(forceDirection * pullSpeed);
-            
-            collectable.collect();
+            p.Collect(player, pullSpeed);
         }
     }
-
 }

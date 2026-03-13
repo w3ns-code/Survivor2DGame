@@ -1,78 +1,60 @@
+using System;
 using System.Collections.Generic;
-using System.Threading;
-using NUnit.Framework;
-using Unity.Mathematics;
-using UnityEditor.U2D.Animation;
 using UnityEngine;
-using UnityEngine.InputSystem.Controls;
+using UnityEngine.UI;
+using TMPro;
 
-public class PlayerStats : MonoBehaviour
+public class PlayerStats : EntityStats
 {
-    CharacterScriptableObjects characterData;
 
-    //Stats Actuels
-    [HideInInspector]
-    public float currentHealth;
-    [HideInInspector]
-    public float currentRecovery;
-    [HideInInspector]
-    public float currentMoveSpeed;
-    [HideInInspector]
-    public float currentMight;
-    [HideInInspector]   
-    public float currentProjectileSpeed;
-    [HideInInspector]   
-    public float currentMagnet;
+    CharacterData characterData;
+    public CharacterData.Stats baseStats;
+    [SerializeField] CharacterData.Stats actualStats;
 
-    InventoryManager inventory;
-    public int weaponIndex;
-    public int passiveItemIndex;
-
-    public GameObject secondWeaponTest;
-    public GameObject fpt, spt;
-
-    void Awake()
+    public CharacterData.Stats Stats
     {
-        characterData = CharacterSelector.GetData();
-        CharacterSelector.instance.DestroySingleton();
-
-        inventory = GetComponent<InventoryManager>();
-
-        currentHealth = characterData.MaxHealth;
-        currentRecovery = characterData.Recovery;
-        currentMoveSpeed = characterData.MoveSpeed;
-        currentMight = characterData.Might;
-        currentProjectileSpeed = characterData.ProjectileSpeed;
-        currentMagnet = characterData.Magnet;
-
-        SpawnWeapon(characterData.StartingWeapon);
-        SpawnWeapon(secondWeaponTest);
-        SpawnPassiveItem(fpt);
-        SpawnPassiveItem(spt);
+        get { return actualStats; }
+        set
+        {
+            actualStats = value;
+        }
     }
-
-    void Start()
+    public CharacterData.Stats Actual
     {
-        experienceCap = levelRanges[0].experienceCapIncrease;
+        get { return actualStats; }
     }
 
-  void Update()
-  {
-    if(invencibilityTimer > 0){
-        invencibilityTimer -= Time.deltaTime;
-    } 
-    //si le timer e l'invenciility est de 0
-    else if (isInvencible){
-        isInvencible = false;        
-    }
-    Recover();
-  }
+    #region Current Stats Properties
+    public float CurrentHealth
+    {
 
-  //Experince et level
+        get { return health; }
+
+        // If we try and set the current health, the UI interface
+        // on the pause screen will also be updated.
+        set
+        {
+            //Check if the value has changed
+            if (health != value)
+            {
+                health = value;
+                UpdateHealthBar();
+            }
+        }
+    }
+    #endregion
+
+    [Header("Visuals")]
+    public ParticleSystem damageEffect; // If damage is dealt.
+    public ParticleSystem blockedEffect; // If armor completely blocks damage.
+
+    //Experience and level of the player
+    [Header("Experience/Level")]
     public int experience = 0;
     public int level = 1;
     public int experienceCap;
 
+    //Class for defining a level range and the corresponding experience cap increase for that range
     [System.Serializable]
     public class LevelRange
     {
@@ -81,118 +63,247 @@ public class PlayerStats : MonoBehaviour
         public int experienceCapIncrease;
     }
 
-    public float invencibilityDuration;
-    float invencibilityTimer;
-    bool isInvencible;
+    //I-Frames
+    [Header("I-Frames")]
+    public float invincibilityDuration;
+    float invincibilityTimer;
+    bool isInvincible;
 
     public List<LevelRange> levelRanges;
- 
+
+    PlayerInventory inventory;
+    PlayerCollector collector;
+
+    [Header("UI")]
+    public Image healthBar;
+    public Image expBar;
+    public TMP_Text levelText;
+
+    void Awake()
+    {
+
+        characterData = UICharacterSelector.GetData();
+
+        inventory = GetComponent<PlayerInventory>();
+        collector = GetComponentInChildren<PlayerCollector>();
+
+        //Assign the variables
+        baseStats = actualStats = characterData.stats;
+        collector.SetRadius(actualStats.magnet);
+        health = actualStats.maxHealth;
+    }
+
+    protected override void Start()
+    {
+        base.Start();
+
+        // Adds the global buff if there is any.
+        if (UILevelSelector.globalBuff && !UILevelSelector.globalBuffAffectsPlayer)
+            ApplyBuff(UILevelSelector.globalBuff);
+
+        //Spawn the starting weapon
+        inventory.Add(characterData.StartingWeapon);
+
+        //Initialize the experience cap as the first experience cap increase
+        experienceCap = levelRanges[0].experienceCapIncrease;
+
+        GameManager.instance.AssignChosenCharacterUI(characterData);
+
+        UpdateHealthBar();
+        UpdateExpBar();
+        UpdateLevelText();
+    }
+
+    protected override void Update()
+    {
+        base.Update();
+        if (invincibilityTimer > 0)
+        {
+            invincibilityTimer -= Time.deltaTime;
+        }
+        //If the invincibility timer has reached 0, set the invincibility flag to false
+        else if (isInvincible)
+        {
+            isInvincible = false;
+        }
+
+        Recover();
+    }
+
+    public override void RecalculateStats()
+    {
+        actualStats = baseStats;
+        foreach (PlayerInventory.Slot s in inventory.passiveSlots)
+        {
+            Passive p = s.item as Passive;
+            if (p)
+            {
+                actualStats += p.GetBoosts();
+            }
+        }
+
+        // Create a variable to store all the cumulative multiplier values.
+        CharacterData.Stats multiplier = new CharacterData.Stats
+        {
+            maxHealth = 1f,
+            recovery = 1f,
+            armor = 1f,
+            moveSpeed = 1f,
+            might = 1f,
+            area = 1f,
+            speed = 1f,
+            duration = 1f,
+            amount = 1,
+            cooldown = 1f,
+            luck = 1f,
+            growth = 1f,
+            greed = 1f,
+            curse = 1f,
+            magnet = 1f,
+            revival = 1
+        };
+        foreach (Buff b in activeBuffs)
+        {
+            BuffData.Stats bd = b.GetData();
+            switch (bd.modifierType)
+            {
+                case BuffData.ModifierType.additive:
+                    actualStats += bd.playerModifier;
+                    break;
+                case BuffData.ModifierType.multiplicative:
+                    multiplier *= bd.playerModifier;
+                    break;
+            }
+        }
+        actualStats *= multiplier;
+
+        // Update the PlayerCollector's radius.
+        collector.SetRadius(actualStats.magnet);
+    }
 
     public void IncreaseExperience(int amount)
     {
         experience += amount;
 
-        levelUpChecker();
+        LevelUpChecker();
+        UpdateExpBar();
     }
 
-    void levelUpChecker()
+    void LevelUpChecker()
     {
-        if(experience >= experienceCap)
+        if (experience >= experienceCap)
         {
+            //Level up the player and reduce their experience by the experience cap
             level++;
             experience -= experienceCap;
 
+            //Find the experience cap increase for the current level range
             int experienceCapIncrease = 0;
-            foreach(LevelRange range in levelRanges)
+            foreach (LevelRange range in levelRanges)
             {
-                if(level >= range.startLevel && level <= range.endLevel)
+                if (level >= range.startLevel && level <= range.endLevel)
                 {
                     experienceCapIncrease = range.experienceCapIncrease;
                     break;
                 }
             }
             experienceCap += experienceCapIncrease;
+
+            UpdateLevelText();
+
+            GameManager.instance.StartLevelUp();
+
+            // If the experience still exceeds the experience cap, level up again.
+            if (experience >= experienceCap) LevelUpChecker();
         }
     }
 
-    public void TakeDamage(float dmg)
+    void UpdateExpBar()
     {
-        if (!isInvencible)
-        {
-            currentHealth -= dmg;
-            
-            invencibilityTimer = invencibilityDuration;
-            isInvencible = true;
+        // Update exp bar fill amount
+        expBar.fillAmount = (float)experience / experienceCap;
+    }
 
-            if(currentHealth <= 0)
+    void UpdateLevelText()
+    {
+        // Update level text
+        levelText.text = "LV " + level.ToString();
+    }
+
+    public override void TakeDamage(float dmg)
+    {
+        //If the player is not currently invincible, reduce health and start invincibility
+        if (!isInvincible)
+        {
+            // Take armor into account before dealing the damage.
+            dmg -= actualStats.armor;
+
+            if (dmg > 0)
             {
-                kill();    
+                // Deal the damage.
+                CurrentHealth -= dmg;
+
+                // If there is a damage effect assigned, play it.
+                if (damageEffect) Destroy(Instantiate(damageEffect, transform.position, Quaternion.identity), 5f);
+
+                if (CurrentHealth <= 0)
+                {
+                    Kill();
+                }
+            }
+            else
+            {
+                // If there is a blocked effect assigned, play it.
+                if (blockedEffect) Destroy(Instantiate(blockedEffect, transform.position, Quaternion.identity), 5f);
+            }
+
+            invincibilityTimer = invincibilityDuration;
+            isInvincible = true;
+        }
+    }
+
+    void UpdateHealthBar()
+    {
+        //Update the health bar
+        healthBar.fillAmount = CurrentHealth / actualStats.maxHealth;
+    }
+
+    public override void Kill()
+    {
+        if (!GameManager.instance.isGameOver)
+        {
+            GameManager.instance.AssignLevelReachedUI(level);
+
+            GameManager.instance.GameOver();
+        }
+    }
+
+    public override void RestoreHealth(float amount)
+    {
+        // Only heal the player if their current health is less than their maximum health
+        if (CurrentHealth < actualStats.maxHealth)
+        {
+            CurrentHealth += amount;
+
+            // Make sure the player's health doesn't exceed their maximum health
+            if (CurrentHealth > actualStats.maxHealth)
+            {
+                CurrentHealth = actualStats.maxHealth;
             }
         }
-        
-    }
-
-    public void kill()
-    {
-        Debug.Log("YOU ARE DEAD");
-    }
-
-    public void RestoreHealth(float health)
-    {
-        if(currentHealth < characterData.MaxHealth)
-        {
-           currentHealth += health;
-
-           if(currentHealth > characterData.MaxHealth)
-            {
-                currentHealth = characterData.MaxHealth;
-            } 
-        }
-        
     }
 
     void Recover()
     {
-        if(currentHealth < characterData.MaxHealth)
+        if (CurrentHealth < actualStats.maxHealth)
         {
-            currentHealth += currentRecovery * Time.deltaTime;
+            CurrentHealth += Stats.recovery * Time.deltaTime;
 
-            if(currentHealth > characterData.MaxHealth)
+            // Make sure the player's health doesn't exceed their maximum health
+            if (CurrentHealth > actualStats.maxHealth)
             {
-                currentHealth = characterData.MaxHealth;
+                CurrentHealth = actualStats.maxHealth;
             }
         }
     }
-
-    public void SpawnWeapon(GameObject weapon)
-    {
-        if(weaponIndex >= inventory.weaponSlots.Count - 1)
-        {
-            Debug.LogError("Inventory slots are full");
-            return;
-        }
-        //Spawn l'arme principale
-        GameObject spawnedWeapon = Instantiate(weapon, transform.position, Quaternion.identity);
-        spawnedWeapon.transform.SetParent(transform); //Fait que l'arme soit enfant du player
-        inventory.AddWeapon(weaponIndex, spawnedWeapon.GetComponent<WeaponController>());
-
-        weaponIndex++;
-    }
-
-    public void SpawnPassiveItem(GameObject passiveItem)
-    {
-        if(passiveItemIndex >= inventory.passiveItemsSlots.Count - 1)
-        {
-            Debug.LogError("Inventory slots are full");
-            return;
-        }
-     
-        GameObject spawnedPassiveItem = Instantiate(passiveItem, transform.position, Quaternion.identity);
-        spawnedPassiveItem.transform.SetParent(transform); 
-        inventory.AddPassiveItem(passiveItemIndex, spawnedPassiveItem.GetComponent<PassiveItem>());
-
-        passiveItemIndex++;
-    }
-
-
 }

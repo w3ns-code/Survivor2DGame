@@ -1,33 +1,34 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ChunkTrigger : MonoBehaviour
 {
     MapController mc;
+
     public GameObject targetMap;
 
-  [System.Obsolete]
-  void Start()
+    void Start()
     {
         mc = FindObjectOfType<MapController>();
     }
 
-
-  private void OnTriggerStay2D(Collider2D col)
-  {
+    private void OnTriggerStay2D(Collider2D col)
+    {
         if (col.CompareTag("Player"))
         {
-            mc.currentChunck = targetMap;
+            mc.currentChunk = targetMap;
         }
-  }
+    }
 
-  public void OnTriggerExit2D(Collider2D col)
-  {
+    private void OnTriggerExit2D(Collider2D col)
+    {
         if (col.CompareTag("Player"))
         {
-            if(mc.currentChunck == targetMap)
+            if (mc.currentChunk == targetMap)
             {
-                mc.currentChunck = null;
+                mc.currentChunk = null;
             }
         }
-  }
+    }
 }
